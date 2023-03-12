@@ -105,17 +105,25 @@ class AlertmanagerSilence(PluginBase):
                         "Could not parse 'ALERTMANAGER_SILENCE_DAYS': %s" % e)
                 silence_seconds = silence_days * 86400
 
-            LOG.debug('Alertmanager: Add silence for alertname=%s instance=%s timeout=%s',
+            LOG.debug('Alertmanager: Add silence for alertname=%s instance=%s environment=%s customer=%s timeout=%s',
                       alert.event, alert.resource, str(silence_seconds))
             data = {
                 "matchers": [
                     {
-                      "name": "alertname",
-                      "value": alert.event
+                        "name": "alertname",
+                        "value": alert.event
                     },
                     {
-                      "name": "instance",
-                      "value": alert.resource
+                        "name": "instance",
+                        "value": alert.resource
+                    },
+                    {
+                        "name": "environment",
+                        "value": alert.environment
+                    },
+                    {
+                        "name": "customer",
+                        "value": alert.customer
                     }
                 ],
                 "startsAt": datetime.datetime.utcnow().replace(microsecond=0).isoformat() + ".000Z",
@@ -128,8 +136,8 @@ class AlertmanagerSilence(PluginBase):
             # if alertmanager is clustered behind a load balancer that mirrors requests we should prefer to create one silence 
             # rather than many 
             if ALERTMANAGER_USE_EXTERNALURL_FOR_SILENCES:
-                base_url = alert.attributes.get('externalUrl', DEFAULT_ALERTMANAGER_API_URL) or ALERTMANAGER_API_URL 
-            else: 
+                base_url = alert.attributes.get('externalUrl', DEFAULT_ALERTMANAGER_API_URL) or ALERTMANAGER_API_URL
+            else:
                 base_url = ALERTMANAGER_API_URL or alert.attributes.get('externalUrl', DEFAULT_ALERTMANAGER_API_URL)
 
             url = base_url + '/api/v1/silences'
@@ -155,7 +163,7 @@ class AlertmanagerSilence(PluginBase):
             LOG.debug('Alertmanager: Added silenceId %s to attributes', silenceId)
 
         elif action == 'unack':
-            LOG.debug('Alertmanager: Remove silence for alertname=%s instance=%s', alert.event, alert.resource)
+            LOG.debug('Alertmanager: Remove silence for alertname=%s instance=%s environment=%s customer=%s', alert.event, alert.resource)
 
             silenceId = alert.attributes.get('silenceId', None)
             if silenceId:
